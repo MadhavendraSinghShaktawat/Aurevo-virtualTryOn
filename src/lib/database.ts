@@ -1,4 +1,5 @@
 import { supabase, Database } from './supabase'
+import { env } from './env'
 
 // Database service layer that maintains localStorage compatibility
 
@@ -10,19 +11,13 @@ export interface UserCredits {
 export class DatabaseService {
   // Check if Supabase is configured
   private static isSupabaseConfigured(): boolean {
-    const configured = !!(supabase &&
-              process.env.NEXT_PUBLIC_SUPABASE_URL &&
-              process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://your-project-id.supabase.co' &&
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'your-anon-key-here')
+    const configured = !!(supabase && env.has('NEXT_PUBLIC_SUPABASE_URL') && env.has('NEXT_PUBLIC_SUPABASE_ANON_KEY'))
 
     if (!configured) {
       console.log('Supabase not configured:', {
         hasSupabase: !!supabase,
-        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-        urlValid: process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://your-project-id.supabase.co',
-        hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        keyValid: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'your-anon-key-here'
+        hasUrl: env.has('NEXT_PUBLIC_SUPABASE_URL'),
+        hasKey: env.has('NEXT_PUBLIC_SUPABASE_ANON_KEY')
       })
     }
 
@@ -317,8 +312,8 @@ export class DatabaseService {
     const adminStatus = localStorage.getItem(`user_admin_${userId}`)
 
     // Auto-set admin for the specified admin email and/or UID from env variables
-    const adminEmail = process.env.ADMIN_ID
-    const adminUID = process.env.ADMIN_UID
+    const adminEmail = env.get('ADMIN_ID')
+    const adminUID = env.get('ADMIN_UID')
     const userEmail = localStorage.getItem('user_email')
 
     // Check both email and UID for admin access (only if env vars are set)

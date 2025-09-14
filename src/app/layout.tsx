@@ -1,18 +1,16 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { ThemeProvider } from '@/lib/theme-context'
-import { AuthProvider } from '@/lib/auth-context'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Fixtral - AI Photoshop Assistant',
-  description: 'Automate image edits from Reddit\'s r/PhotoshopRequest using Google Gemini AI. Transform your images with AI-powered editing tools.',
-  keywords: ['AI image editing', 'Photoshop automation', 'Reddit PhotoshopRequest', 'Google Gemini AI', 'image transformation', 'AI art generation'],
-  authors: [{ name: 'Fariz Anjum' }],
-  creator: 'Fariz Anjum',
-  publisher: 'Fixtral',
+  title: 'Wearly - Virtual Try-On Experience',
+  description: 'Experience the future of online shopping with AI-powered virtual try-on technology. See how clothes look on you before you purchase.',
+  keywords: ['virtual try-on', 'AI fashion', 'online shopping', 'augmented reality', 'fashion tech', 'try before you buy'],
+  authors: [{ name: 'Wearly Team' }],
+  creator: 'Wearly',
+  publisher: 'Wearly',
   formatDetection: {
     email: false,
     address: false,
@@ -20,7 +18,7 @@ export const metadata: Metadata = {
   },
 
   // Basic meta tags
-  metadataBase: new URL('https://fixtral.com'), // Replace with your actual domain
+  metadataBase: new URL('https://wearly.com'), // Replace with your actual domain
   alternates: {
     canonical: '/',
   },
@@ -29,15 +27,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: '/',
-    title: 'Fixtral - AI Photoshop Assistant',
-    description: 'Transform your images with AI-powered editing. Automate edits from Reddit\'s r/PhotoshopRequest using Google Gemini AI.',
-    siteName: 'Fixtral',
+    title: 'Wearly - Virtual Try-On Experience',
+    description: 'Experience the future of online shopping with AI-powered virtual try-on technology. See how clothes look on you before you purchase.',
+    siteName: 'Wearly',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Fixtral - AI Photoshop Assistant',
+        alt: 'Wearly - Virtual Try-On Experience',
       },
     ],
     locale: 'en_US',
@@ -46,10 +44,10 @@ export const metadata: Metadata = {
   // Twitter
   twitter: {
     card: 'summary_large_image',
-    title: 'Fixtral - AI Photoshop Assistant',
-    description: 'Transform your images with AI-powered editing. Automate edits from Reddit\'s r/PhotoshopRequest using Google Gemini AI.',
+    title: 'Wearly - Virtual Try-On Experience',
+    description: 'Experience the future of online shopping with AI-powered virtual try-on technology. See how clothes look on you before you purchase.',
     images: ['/og-image.jpg'],
-    creator: '@anjumfariz',
+    creator: '@wearly',
   },
 
   // Favicons and icons
@@ -92,12 +90,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} dark antialiased`}>
-        <ThemeProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </ThemeProvider>
+      <head>
+        <meta name="referrer" content="no-referrer" />
+        <meta httpEquiv="Content-Security-Policy" content="frame-ancestors 'none';" />
+      </head>
+      <body className={`${inter.className} dark antialiased`} suppressHydrationWarning>
+        {children}
       </body>
     </html>
   )

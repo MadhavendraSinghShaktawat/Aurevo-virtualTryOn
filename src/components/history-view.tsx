@@ -8,6 +8,7 @@ import { Download, Eye, History as HistoryIcon, Trash2, Save } from 'lucide-reac
 import Image from 'next/image'
 import { useImageViewer } from './image-viewer'
 import { supabase } from '@/lib/supabase'
+import { env } from '@/lib/env'
 
 interface HistoryItem {
   id: string
@@ -45,7 +46,7 @@ export function HistoryView() {
       let combinedHistory: HistoryItem[] = []
 
       // Method 1: Try to load from database if user is authenticated
-      if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://your-project-id.supabase.co') {
+      if (userId && env.has('NEXT_PUBLIC_SUPABASE_URL')) {
         try {
           console.log('1️⃣ Loading from database...')
           const { DatabaseService } = await import('@/lib/database')
@@ -169,7 +170,7 @@ export function HistoryView() {
         const userId = localStorage.getItem('user_id')
 
         // Method 1: Delete from database if user is authenticated
-        if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://your-project-id.supabase.co') {
+        if (userId && env.has('NEXT_PUBLIC_SUPABASE_URL')) {
           try {
             const { DatabaseService } = await import('@/lib/database')
             // Note: DatabaseService might not have a delete method, so we'll use direct Supabase call
@@ -250,7 +251,7 @@ export function HistoryView() {
         const userId = localStorage.getItem('user_id')
 
         // Method 1: Clear from database if user is authenticated
-        if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://your-project-id.supabase.co') {
+        if (userId && env.has('NEXT_PUBLIC_SUPABASE_URL')) {
           try {
             const { error } = await supabase
               .from('edit_history')

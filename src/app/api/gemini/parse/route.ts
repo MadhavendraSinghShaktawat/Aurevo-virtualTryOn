@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { env } from '@/lib/env'
 
 interface ParseRequest {
   title: string
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+    // Temporarily hardcode API key for testing
+    const genAI = new GoogleGenerativeAI(env.get('GEMINI_API_KEY'))
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = `

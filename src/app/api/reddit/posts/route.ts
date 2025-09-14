@@ -4,32 +4,31 @@ export const runtime = 'nodejs'; // ensure Node runtime (Buffer required)
 import type { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { env } from '@/lib/env';
 
-// Dedicated endpoints for the exact workflow
-const googleGenAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
+// Initialize AI clients with environment variables
+const googleGenAI = env.has('GEMINI_API_KEY') ? new GoogleGenerativeAI(env.get('GEMINI_API_KEY')) : null;
 const googleGeminiModel = googleGenAI ? googleGenAI.getGenerativeModel({ model: 'gemini-2.5-flash' }) : null;
 
-const openRouterClient = process.env.OPENROUTER_API_KEY ? new OpenAI({
+const openRouterClient = env.has('OPENROUTER_API_KEY') ? new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: env.get('OPENROUTER_API_KEY'),
 }) : null;
 
 const TOKEN_URL = 'https://www.reddit.com/api/v1/access_token';
 const API_BASE = 'https://oauth.reddit.com';
 
 async function getAccessToken() {
-  const clientId = process.env.REDDIT_CLIENT_ID?.replace(/"/g, '').trim();
-  const clientSecret = process.env.REDDIT_CLIENT_SECRET?.replace(/"/g, '').trim();
-  const username = process.env.REDDIT_USERNAME?.replace(/"/g, '').trim();
-  const password = process.env.REDDIT_PASSWORD?.replace(/"/g, '');
+  const clientId = env.get('REDDIT_CLIENT_ID')?.replace(/"/g, '').trim();
+  const clientSecret = env.get('REDDIT_CLIENT_SECRET')?.replace(/"/g, '').trim();
+  const username = env.get('REDDIT_USERNAME')?.replace(/"/g, '').trim();
+  const password = env.get('REDDIT_PASSWORD')?.replace(/"/g, '');
 
   if (!clientId || !clientSecret || !username || !password) {
     throw new Error('Reddit credentials are missing from environment variables');
   }
 
-  const userAgent =
-    process.env.REDDIT_USER_AGENT?.replace(/"/g, '').trim() ||
-    'windows:com.varnan.wsbmcp:v1.0.0 (by /u/This_Cancel_5950)';
+  const userAgent = env.get('REDDIT_USER_AGENT') || 'Fixtral:v1.0.0 (by /u/fixtral)';
 
   // EXACTLY matching the working curl command
   const body = new URLSearchParams({
@@ -49,8 +48,11 @@ async function getAccessToken() {
     'User-Agent': userAgent,
   };
 
-  // If you have 2FA, uncomment:
-  // if (process.env.REDDIT_2FA_CODE) headers['X-Reddit-OTP'] = process.env.REDDIT_2FA_CODE;
+  // Optional 2FA support
+  const twoFactorCode = env.get('REDDIT_2FA_CODE');
+  if (twoFactorCode) {
+    headers['X-Reddit-OTP'] = twoFactorCode;
+  }
 
   // Add delay to prevent rate limiting - being extra conservative
   await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
@@ -72,9 +74,7 @@ async function getAccessToken() {
 }
 
 async function redditGet(path: string, token: string) {
-  const userAgent =
-    process.env.REDDIT_USER_AGENT ||
-    'windows:com.varnan.wsbmcp:v1.0.0 (by /u/Ok-Literature-9189)';
+  const userAgent = env.get('REDDIT_USER_AGENT') || 'Fixtral:v1.0.0 (by /u/fixtral)';
 
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -258,12 +258,12 @@ export async function GET(_req: NextRequest) {
           "Check your Reddit API credentials and ensure your app is properly registered.",
         stack: err?.stack,
         envCheck: {
-          hasRedditClientId: !!process.env.REDDIT_CLIENT_ID,
-          hasRedditClientSecret: !!process.env.REDDIT_CLIENT_SECRET,
-          hasRedditUsername: !!process.env.REDDIT_USERNAME,
-          hasRedditPassword: !!process.env.REDDIT_PASSWORD,
-          hasGeminiApiKey: !!process.env.GEMINI_API_KEY,
-          hasOpenRouterApiKey: !!process.env.OPENROUTER_API_KEY
+          hasRedditClientId: env.has('REDDIT_CLIENT_ID'),
+          hasRedditClientSecret: env.has('REDDIT_CLIENT_SECRET'),
+          hasRedditUsername: env.has('REDDIT_USERNAME'),
+          hasRedditPassword: env.has('REDDIT_PASSWORD'),
+          hasGeminiApiKey: env.has('GEMINI_API_KEY'),
+          hasOpenRouterApiKey: env.has('OPENROUTER_API_KEY')
         }
       }),
       { status: isRateLimited ? 429 : 500, headers: { 'Content-Type': 'application/json' } }

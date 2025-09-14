@@ -1,3 +1,27 @@
+# Environment
+
+Create a `.env` file at the project root with:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Then, in Supabase Dashboard → Authentication → URL Configuration:
+
+- Site URL: your deployed base URL (e.g., https://your-domain.com)
+- Additional Redirect URLs: add your local URL (http://localhost:3000) and deployed URL
+
+Under Authentication → Providers → Google:
+
+- Add the same redirect URL(s)
+- Ensure the provider is enabled
+
+Deployment notes:
+
+- Set the two env vars in your hosting provider
+- Rebuild after setting env
+
 # Fixtral - AI Photoshop Assistant
 
 *Version 0.2.0 - August 2025*

@@ -1,23 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import { env } from './env'
 
-// Supabase configuration with validation
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || supabaseUrl === 'https://your-project-id.supabase.co') {
-  console.warn('⚠️ Supabase URL not configured. Authentication features will be disabled.')
-}
-
-if (!supabaseAnonKey || supabaseAnonKey === 'your-anon-key-here') {
-  console.warn('⚠️ Supabase Anon Key not configured. Authentication features will be disabled.')
-}
-
-// Create Supabase client (only if properly configured)
-export const supabase = supabaseUrl && supabaseAnonKey &&
-                        supabaseUrl !== 'https://your-project-id.supabase.co' &&
-                        supabaseAnonKey !== 'your-anon-key-here'
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null as any
+// Create Supabase client with environment variables
+export const supabase = createClient(
+  env.get('NEXT_PUBLIC_SUPABASE_URL'),
+  env.get('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+)
 
 // Database types
 export interface Database {

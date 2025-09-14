@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { env } from '@/lib/env'
 
 interface EditRequest {
   imageUrl: string
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const openrouter = new OpenAI({
       baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: process.env.OPENROUTER_API_KEY!,
+      apiKey: env.get('OPENROUTER_API_KEY')!,
     })
 
     // For Gemini 2.5 Flash Image, we need to fetch the image and convert to base64

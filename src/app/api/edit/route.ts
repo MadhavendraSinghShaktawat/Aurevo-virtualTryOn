@@ -4,13 +4,10 @@ export const runtime = 'nodejs'; // ensure Node runtime (Buffer required)
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import sharp from 'sharp';
+import { env } from '@/lib/env';
 
-// Validate API key
-if (!process.env.GEMINI_API_KEY) {
-  console.error('❌ GEMINI_API_KEY not found in environment variables');
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Initialize Google Generative AI with environment variable
+const genAI = new GoogleGenerativeAI(env.get('GEMINI_API_KEY'));
 const geminiImageModel = genAI.getGenerativeModel({
   model: 'gemini-2.5-flash-image-preview',
   generationConfig: {
