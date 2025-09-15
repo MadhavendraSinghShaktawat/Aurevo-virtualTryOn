@@ -63,7 +63,7 @@ export function Footer() {
               <div className="text-sm font-semibold text-gray-600 mb-4">The Boring</div>
               <ul className="space-y-3 text-gray-700">
                 <li><a data-cursor-hover className="hover:text-gray-900 transition-colors" href="#">Terms</a></li>
-                <li><a data-cursor-hover className="hover:text-gray-900 transition-colors" href="#">Privacy</a></li>
+                <li><a data-cursor-hover className="hover:text-gray-900 transition-colors" href="/privacy">Privacy</a></li>
               </ul>
             </nav>
 
