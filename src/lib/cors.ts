@@ -19,6 +19,7 @@ export function buildCorsHeaders(request: Request): HeadersInit {
   const headers: HeadersInit = {
     'Access-Control-Allow-Methods': DEFAULT_ALLOWED_METHODS,
     'Access-Control-Allow-Headers': DEFAULT_ALLOWED_HEADERS,
+    'Access-Control-Allow-Credentials': 'true',
     'Vary': 'Origin',
   }
 

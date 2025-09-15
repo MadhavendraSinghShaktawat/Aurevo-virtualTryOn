@@ -19,12 +19,20 @@ export async function POST(req: NextRequest) {
   }
 
   // metadata/notes carry user id and credits purchased
-  const { notes } = event.payload.payment.entity
+  const payment = event.payload.payment.entity
+  const paymentId = payment?.id
+  const { notes } = payment
   const userId = notes?.user_id
   const credits = Number(notes?.credits || 0)
 
   if (!userId || !credits) {
     return NextResponse.json({ error: 'Missing metadata' }, { status: 400 })
+  }
+
+  // Idempotency: skip if we've processed this payment before
+  const { data: processed } = await supabase.rpc('mark_payment_processed', { p_payment_id: paymentId })
+  if (processed === false) {
+    return NextResponse.json({ ok: true, skipped: true })
   }
 
   // increment credits atomically

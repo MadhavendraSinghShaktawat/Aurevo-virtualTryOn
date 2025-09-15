@@ -8,28 +8,49 @@ export async function OPTIONS(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const headers = buildCorsHeaders(req as unknown as Request)
-
-  const auth = req.headers.get('authorization') || ''
-  const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
-  if (!token) {
-    return new NextResponse('Unauthorized', { status: 401, headers })
-  }
+  const rawCookie = req.headers.get('cookie') || ''
+  const cookiePairs = rawCookie
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const idx = s.indexOf('=')
+      const key = idx === -1 ? s : s.slice(0, idx)
+      const val = idx === -1 ? '' : decodeURIComponent(s.slice(idx + 1))
+      return [key, val] as [string, string]
+    })
+  const map = new Map<string, string>(cookiePairs)
+  const accessToken = map.get('sb_at') as string | undefined
+  const refreshToken = map.get('sb_rt') as string | undefined
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-  const supabase = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  })
 
-  const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) {
-    return new NextResponse('Unauthorized', { status: 401, headers })
+  async function getUserWithToken(token: string) {
+    const client = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } })
+    return client.auth.getUser()
   }
 
-  return NextResponse.json(
-    { userId: data.user.id, email: data.user.email },
-    { status: 200, headers }
-  )
+  if (accessToken) {
+    const { data, error } = await getUserWithToken(accessToken as string)
+    if (data?.user && !error) {
+      return NextResponse.json({ userId: data.user.id, email: data.user.email }, { status: 200, headers })
+    }
+  }
+
+  // Try refresh
+  if (refreshToken) {
+    const supabase = createClient(supabaseUrl, anonKey)
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken as string })
+    if (data?.session && !error) {
+      const h = new Headers(headers)
+      h.append('Set-Cookie', `sb_at=${encodeURIComponent(data.session.access_token)}; Path=/; Max-Age=3600; SameSite=None; Secure; HttpOnly`)
+      const u = data.session.user
+      return NextResponse.json({ userId: u.id, email: u.email }, { status: 200, headers: h })
+    }
+  }
+
+  return new NextResponse('Unauthorized', { status: 401, headers })
 }
 
 

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import sharp from 'sharp';
 import { env } from '@/lib/env';
+import { createClient } from '@supabase/supabase-js'
 
 // Initialize Google Generative AI with environment variable
 const genAI = new GoogleGenerativeAI(env.get('GEMINI_API_KEY'));
@@ -25,6 +26,32 @@ interface TryOnRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate via HttpOnly cookies like other endpoints
+    const rawCookie = request.headers.get('cookie') || ''
+    const cookiePairs = rawCookie.split(';').map((s) => s.trim()).filter(Boolean).map((s) => {
+      const idx = s.indexOf('=');
+      const key = idx === -1 ? s : s.slice(0, idx);
+      const val = idx === -1 ? '' : decodeURIComponent(s.slice(idx + 1));
+      return [key, val] as [string, string];
+    })
+    const map = new Map<string, string>(cookiePairs)
+    const accessToken = map.get('sb_at') || ''
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+    const db = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
+
+    // Identify user and ensure monthly top-up
+    const { data: userRes } = await db.auth.getUser()
+    const userId = userRes?.user?.id
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+    }
+    await db.rpc('ensure_monthly_topup', { p_user_id: userId })
+    // Consume 1 credit atomically; block if none
+    const { data: consumed } = await db.rpc('consume_credits', { p_user_id: userId, p_delta: 1 })
+    if (!consumed) {
+      return NextResponse.json({ ok: false, error: 'Not enough credits' }, { status: 402 })
+    }
     const { userImageUrl, productImageUrl, productType, fitInstructions }: TryOnRequest = await request.json();
 
     if (!userImageUrl || !productImageUrl || !productType) {

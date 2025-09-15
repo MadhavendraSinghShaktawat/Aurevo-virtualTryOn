@@ -12,6 +12,8 @@ export function useCredits(userId?: string) {
     async function load() {
       if (!userId) { setCredits(null); setLoading(false); return }
       setLoading(true)
+      // Lazily ensure monthly top-up before reading credits
+      await supabase.rpc('ensure_monthly_topup', { p_user_id: userId })
       const { data, error } = await supabase
         .from('user_credits')
         .select('credits')

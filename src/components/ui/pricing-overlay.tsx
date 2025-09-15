@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 
 type Plan = {
   name: string
@@ -11,6 +12,7 @@ type Plan = {
 }
 
 export function PricingOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [successInfo, setSuccessInfo] = useState<{ amountPaise: number; credits: number } | null>(null)
   const plans: Plan[] = [
     { name: 'Starter', price: 5, tries: 'Includes 25 try‑ons', features: ['Email support', 'Basic usage analytics'] },
     { name: 'Pro', price: 10, tries: 'Includes 80 try‑ons', features: ['Priority support', 'Advanced analytics', 'Early access'], highlight: true },
@@ -30,21 +32,74 @@ export function PricingOverlay({ open, onClose }: { open: boolean; onClose: () =
     try {
       // Map plan price to credits (1 USD ~ 1 credit pack price); use notes for user id & credits
       const credits = p.name === 'Starter' ? 25 : p.name === 'Pro' ? 80 : 250
+      // Get current authenticated user id from Supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.id) {
+        // If not logged in, send them to website login first
+        window.location.href = '/login?from=pricing-overlay'
+        return
+      }
+
+      // Ensure Razorpay SDK is loaded
+      async function loadRazorpay() {
+        if (typeof window === 'undefined') return false
+        if ((window as any).Razorpay) return true
+        // Must load from Razorpay domain; they block other sources
+        const src = 'https://checkout.razorpay.com/v1/checkout.js'
+        const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null
+        if (existing) {
+          if ((window as any).Razorpay) return true
+          await new Promise<void>((resolve) => existing.addEventListener('load', () => resolve(), { once: true }))
+          return !!(window as any).Razorpay
+        }
+        await new Promise<void>((resolve, reject) => {
+          const s = document.createElement('script')
+          s.src = src
+          s.async = true
+          s.onload = () => resolve()
+          s.onerror = () => reject(new Error('Failed to load Razorpay'))
+          document.body.appendChild(s)
+        })
+        return !!(window as any).Razorpay
+      }
+
+      const ok = await loadRazorpay()
+      if (!ok) throw new Error('Razorpay SDK failed to load')
+
       const res = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: p.price * 100, currency: 'INR', metadata: { credits } })
+        body: JSON.stringify({ usd_price: p.price, metadata: { credits, user_id: user.id } })
       })
       const { order, key } = await res.json()
       if (!order?.id) return
       // @ts-ignore (Razorpay is injected by script tag)
-      const rzp = new (window as any).Razorpay({
+      const Razorpay = (window as any).Razorpay
+      const rzp = new Razorpay({
         key,
         amount: order.amount,
         currency: order.currency,
         name: 'aurevo',
         order_id: order.id,
-        notes: { credits },
+        notes: { credits, user_id: user.id },
+        handler: async function (resp: any) {
+          // Verify signature from the client to give instant feedback
+          try {
+            await fetch('/api/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: resp.razorpay_payment_id,
+                razorpay_order_id: resp.razorpay_order_id,
+                razorpay_signature: resp.razorpay_signature,
+              })
+            })
+          } catch {}
+          // Refresh credits, webhook will also apply if verification fails
+          try { await fetch('/api/credits', { credentials: 'include' }) } catch {}
+          // Show UX confirmation
+          setSuccessInfo({ amountPaise: order.amount, credits })
+        },
       })
       rzp.open()
     } catch (e) {
@@ -110,6 +165,19 @@ export function PricingOverlay({ open, onClose }: { open: boolean; onClose: () =
           </div>
         </div>
       </div>
+
+      {successInfo && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSuccessInfo(null)} />
+          <div className="relative mx-4 w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-200 p-6 text-center">
+            <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-green-100 text-green-600 grid place-items-center text-2xl">✓</div>
+            <div className="text-lg font-semibold text-gray-900">Payment successful</div>
+            <div className="mt-1 text-sm text-gray-600">You have purchased {successInfo.credits} credits.</div>
+            <div className="mt-1 text-xs text-gray-500">Amount paid: ₹{(successInfo.amountPaise / 100).toFixed(2)}</div>
+            <button onClick={() => setSuccessInfo(null)} className="mt-4 inline-flex h-10 px-4 rounded-full bg-gray-900 text-white font-medium hover:bg-black active:scale-95 transition">Close</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

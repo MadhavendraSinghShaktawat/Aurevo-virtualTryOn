@@ -9,6 +9,7 @@ import { useAuthSession } from '@/hooks/useAuthSession'
 import ProfileOverlay from '@/components/ui/profile-overlay'
 import { CustomCursor } from '@/components/ui/custom-cursor'
 import { BrandMarqueeSection } from '@/components/ui/brand-marquee'
+import SessionSync from '@/components/session-sync'
 import { SolutionHighlights } from '@/components/ui/solution-highlights'
 import { Footer } from '@/components/ui/footer'
 import { 
@@ -44,6 +45,7 @@ export default function OnivoLandingPage() {
 
   return (
     <div ref={containerRef} className="bg-gray-50 relative custom-cursor-active">
+      <SessionSync />
       {/* Custom Cursor */}
       <CustomCursor />
 

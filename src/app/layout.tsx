@@ -92,7 +92,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="referrer" content="no-referrer" />
-        <meta httpEquiv="Content-Security-Policy" content="frame-ancestors 'none';" />
       </head>
       <body className={`${inter.className} dark antialiased`} suppressHydrationWarning>
         {children}

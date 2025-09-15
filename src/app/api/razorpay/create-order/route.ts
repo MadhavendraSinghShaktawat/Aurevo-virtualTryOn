@@ -10,15 +10,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid content-type' }, { status: 400 })
     }
 
-    const { amount, currency, metadata } = await req.json()
-    if (!amount || typeof amount !== 'number') {
-      return NextResponse.json({ error: 'Amount required' }, { status: 400 })
+    const { usd_price, metadata } = await req.json()
+    if (!usd_price || typeof usd_price !== 'number') {
+      return NextResponse.json({ error: 'usd_price required' }, { status: 400 })
     }
 
-    // Always use smallest currency unit (INR paise)
+    // Convert USD to INR and add 9% tax
+    let rate = 83
+    try {
+      const fx = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=INR', { cache: 'no-store' })
+      if (fx.ok) {
+        const j = await fx.json()
+        if (j?.rates?.INR) rate = Number(j.rates.INR)
+      }
+    } catch {}
+    const inr = usd_price * rate
+    const inrWithTax = inr * 1.09
+    const amountPaise = Math.round(inrWithTax * 100)
+
     const payload = {
-      amount: Math.floor(amount),
-      currency: currency || 'INR',
+      amount: amountPaise,
+      currency: 'INR',
       receipt: `rcpt_${Date.now()}`,
       notes: metadata || {},
     }
