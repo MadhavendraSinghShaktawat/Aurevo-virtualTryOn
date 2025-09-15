@@ -1,26 +1,83 @@
-# Environment
+## Environment
 
-Create a `.env` file at the project root with:
+Create a `.env.local` with:
 
-```
+```bash
+# Supabase public
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Razorpay server secrets
+RAZORPAY_KEY_ID=rzp_test_xxx
+RAZORPAY_KEY_SECRET=xxx
+RAZORPAY_WEBHOOK_SECRET=xxx
+
+# Optional: stable app URL for OAuth redirects
+NEXT_PUBLIC_APP_URL=http://localhost:3000/
 ```
 
-Then, in Supabase Dashboard → Authentication → URL Configuration:
+### Supabase auth (Google)
+Supabase Dashboard → Authentication → URL Configuration:
 
-- Site URL: your deployed base URL (e.g., https://your-domain.com)
-- Additional Redirect URLs: add your local URL (http://localhost:3000) and deployed URL
+- Site URL: your deployed base URL (e.g., `https://your-domain.com/`)
+- Additional Redirect URLs: `http://localhost:3000/` and your deployed URL
 
-Under Authentication → Providers → Google:
+Providers → Google:
+- Enable provider and add the same redirect URL if required
 
-- Add the same redirect URL(s)
-- Ensure the provider is enabled
+### Credits schema
+This repo includes SQL at `sql/credits.sql`. We also applied it via Supabase MCP.
 
-Deployment notes:
+```sql
+-- user_credits table + increment_credits RPC + RLS policy
+```
 
-- Set the two env vars in your hosting provider
-- Rebuild after setting env
+Resulting objects:
+- `public.user_credits(user_id uuid primary key, credits int default 0, updated_at timestamptz)`
+- `public.increment_credits(p_user_id uuid, p_delta int)` for atomic updates
+- RLS: authenticated users can SELECT their own credits
+
+### Razorpay
+1) Add Checkout script where the pricing overlay is used:
+```html
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+```
+2) Dashboard → Settings → Webhooks → Add new webhook
+   - URL: `https://your-domain.com/api/razorpay/webhook` (use an ngrok URL for local testing)
+   - Events: `payment.captured`
+   - Secret: set to `RAZORPAY_WEBHOOK_SECRET`
+
+3) Our endpoints:
+- `POST /api/razorpay/create-order` – creates an order (amount in paise)
+- `POST /api/razorpay/webhook` – verifies HMAC signature and calls `increment_credits`
+
+When opening Razorpay Checkout from the pricing overlay, pass purchase metadata in `notes`:
+
+```ts
+const options = {
+  key, order_id, amount, currency,
+  notes: { user_id: '<supabase_user_id>', credits: 25 },
+}
+```
+
+### Building / linting
+We silence lint errors during production builds but keep them in dev/IDE.
+See `next.config.js` (`eslint.ignoreDuringBuilds = true`).
+
+### App route AuthProvider
+The `/app` route is wrapped in `src/app/app/layout.tsx` with `AuthProvider` and the page exports `dynamic = 'force-dynamic'` to avoid prerender auth errors.
+
+## Development
+
+```bash
+pnpm dev
+```
+
+## Production build
+
+```bash
+pnpm build && pnpm start
+```
 
 # Fixtral - AI Photoshop Assistant
 

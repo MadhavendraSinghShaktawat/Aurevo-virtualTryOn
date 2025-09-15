@@ -15,15 +15,17 @@ export const FloatingDock = ({
   items,
   desktopClassName,
   mobileClassName,
+  rightSlot,
 }: {
   items: { title: string; href?: string; onClick?: () => void }[];
   desktopClassName?: string;
   mobileClassName?: string;
+  rightSlot?: React.ReactNode;
 }) => {
   return (
     <>
-      <FloatingDockDesktop items={items} className={desktopClassName} />
-      <FloatingDockMobile items={items} className={mobileClassName} />
+      <FloatingDockDesktop items={items} className={desktopClassName} rightSlot={rightSlot} />
+      <FloatingDockMobile items={items} className={mobileClassName} rightSlot={rightSlot} />
     </>
   );
 };
@@ -31,9 +33,11 @@ export const FloatingDock = ({
 const FloatingDockMobile = ({
   items,
   className,
+  rightSlot,
 }: {
   items: { title: string; href?: string; onClick?: () => void }[];
   className?: string;
+  rightSlot?: React.ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
   return (
@@ -93,13 +97,15 @@ const FloatingDockMobile = ({
         <IconLayoutNavbarCollapse className={cn("h-5 w-5 text-gray-600 transition-transform duration-200", open && "rotate-180")} />
         <div data-cursor-bounds className="absolute inset-0 rounded-full"></div>
       </button>
-      <a
-        href="/login"
-        className="hidden sm:flex h-12 px-5 rounded-full bg-blue-600 text-white font-medium shadow-lg border border-blue-500/60 hover:bg-blue-700 active:scale-95 transition-all cursor-interactive items-center"
-        data-cursor-hover
-      >
-        Login
-      </a>
+      {rightSlot ?? (
+        <a
+          href="/login"
+          className="hidden sm:flex h-12 px-5 rounded-full bg-blue-600 text-white font-medium shadow-lg border border-blue-500/60 hover:bg-blue-700 active:scale-95 transition-all cursor-interactive items-center"
+          data-cursor-hover
+        >
+          Login
+        </a>
+      )}
     </div>
   );
 };
@@ -107,9 +113,11 @@ const FloatingDockMobile = ({
 const FloatingDockDesktop = ({
   items,
   className,
+  rightSlot,
 }: {
   items: { title: string; href?: string; onClick?: () => void }[];
   className?: string;
+  rightSlot?: React.ReactNode;
 }) => {
   let mouseX = useMotionValue(Infinity);
   return (
@@ -125,13 +133,15 @@ const FloatingDockDesktop = ({
         <IconContainer mouseX={mouseX} key={item.title} {...item} />
       ))}
       <div className="ml-2 h-8 w-px bg-gray-200/70" />
-      <a
-        href="/login"
-        className="h-11 px-5 flex items-center justify-center rounded-full bg-blue-600 text-white font-medium shadow hover:bg-blue-700 active:scale-95 transition-all cursor-interactive"
-        data-cursor-hover
-      >
-        Login
-      </a>
+      {rightSlot ?? (
+        <a
+          href="/login"
+          className="h-11 px-5 flex items-center justify-center rounded-full bg-blue-600 text-white font-medium shadow hover:bg-blue-700 active:scale-95 transition-all cursor-interactive"
+          data-cursor-hover
+        >
+          Login
+        </a>
+      )}
     </motion.div>
   );
 };

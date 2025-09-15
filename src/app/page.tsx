@@ -5,6 +5,8 @@ import { motion, useScroll, useTransform } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { PricingOverlay } from '@/components/ui/pricing-overlay'
 import { FloatingDock } from '@/components/ui/floating-dock'
+import { useAuthSession } from '@/hooks/useAuthSession'
+import ProfileOverlay from '@/components/ui/profile-overlay'
 import { CustomCursor } from '@/components/ui/custom-cursor'
 import { BrandMarqueeSection } from '@/components/ui/brand-marquee'
 import { SolutionHighlights } from '@/components/ui/solution-highlights'
@@ -24,6 +26,7 @@ const dockItems = [
 export default function OnivoLandingPage() {
   const [isVisible, setIsVisible] = useState(false)
   const [showPricing, setShowPricing] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -36,6 +39,8 @@ export default function OnivoLandingPage() {
   useEffect(() => {
     setIsVisible(true)
   }, [])
+
+  const { user } = useAuthSession()
 
   return (
     <div ref={containerRef} className="bg-gray-50 relative custom-cursor-active">
@@ -181,9 +186,30 @@ export default function OnivoLandingPage() {
       {/* Pricing Overlay */}
       <PricingOverlay open={showPricing} onClose={() => setShowPricing(false)} />
 
+      {/* Profile Overlay */}
+      <ProfileOverlay open={showProfile} onClose={() => setShowProfile(false)} />
+
       {/* Floating Dock Navigation */}
       <div className="fixed bottom-4 sm:bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-        <FloatingDock items={[{title:'Home',href:'#'},{title:'Pricing',onClick:()=>setShowPricing(true)} ,{title:'Contact',href:'/contact'}]} />
+        <FloatingDock
+          items={[
+            { title: 'Home', href: '#' },
+            { title: 'Pricing', onClick: () => setShowPricing(true) },
+            { title: 'Contact', href: '/contact' },
+          ]}
+          rightSlot={
+            user ? (
+              <button
+                onClick={() => setShowProfile(true)}
+                className="h-11 px-5 flex items-center justify-center rounded-full bg-gray-900 text-white font-medium shadow hover:bg-black active:scale-95 transition-all cursor-interactive"
+                data-cursor-hover
+              >
+                Profile
+                <div data-cursor-bounds className="absolute inset-0 rounded-full"></div>
+              </button>
+            ) : undefined
+          }
+        />
       </div>
     </div>
   )
