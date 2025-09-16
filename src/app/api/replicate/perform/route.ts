@@ -32,14 +32,17 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
+    // Resolve redirected reference image URLs to the final CDN asset when possible
+    const resolvedRefUrl = await resolveFinalImageUrl(referenceImageUrl)
+
     // Step 1: isolate requested parts in parallel
     const isoTasks: Array<Promise<Response>> = []
     const isoKinds: string[] = []
-    if (inc.top) { isoKinds.push('tshirt'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: referenceImageUrl, productType: 'tshirt' }) })) }
-    if (inc.bottom) { isoKinds.push('pants'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: referenceImageUrl, productType: 'pants' }) })) }
+    if (inc.top) { isoKinds.push('tshirt'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: resolvedRefUrl, productType: 'tshirt' }) })) }
+    if (inc.bottom) { isoKinds.push('pants'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: resolvedRefUrl, productType: 'pants' }) })) }
     if (inc.shoesAccessories) {
-      isoKinds.push('shoes'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: referenceImageUrl, productType: 'shoes' }) }))
-      isoKinds.push('accessories'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: referenceImageUrl, productType: 'accessories' }) }))
+      isoKinds.push('shoes'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: resolvedRefUrl, productType: 'shoes' }) }))
+      isoKinds.push('accessories'); isoTasks.push(fetch(`${baseUrl}/api/product/isolate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: resolvedRefUrl, productType: 'accessories' }) }))
     }
 
     const isoResults = await Promise.all(isoTasks)
@@ -113,4 +116,33 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Resolve redirects/CDN originals for common hosts (Pinterest etc.).
+async function resolveFinalImageUrl(url: string): Promise<string> {
+  try {
+    // Follow redirects with a HEAD first to avoid downloading large bodies
+    const headRes = await fetch(url, { method: 'HEAD', redirect: 'follow' as any })
+    if (headRes.ok) {
+      const finalUrl = (headRes.url || url).toString()
+      // If content-type looks like image, use it directly
+      const ct = headRes.headers.get('content-type') || ''
+      if (ct.startsWith('image/')) return finalUrl
+    }
+  } catch {}
+  // Pinterest specific extraction: look for /originals/... when present
+  try {
+    const u = new URL(url)
+    if (u.hostname.includes('pinterest')) {
+      // Some pinterest media URLs contain /originals/ or /originals/ path – prefer that
+      const path = u.pathname
+      if (path.includes('/originals/')) return url
+      // Fallback: replace /236x/ or /564x/ with /originals/
+      const replaced = path.replace(/\/(\d+x)\//, '/originals/')
+      if (replaced !== path) {
+        u.pathname = replaced
+        return u.toString()
+      }
+    }
+  } catch {}
+  return url
+}
 
