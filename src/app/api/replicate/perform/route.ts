@@ -1,6 +1,13 @@
 // Combined endpoint for Style Replicator: isolate multiple garments from a reference image
 // then apply sequentially onto the user photo (top -> bottom -> shoes/accessories)
 export const runtime = 'nodejs';
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+};
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCorsHeaders, handleCorsOptions } from '@/lib/cors'
@@ -46,7 +53,14 @@ export async function POST(req: NextRequest) {
     }
 
     const isoResults = await Promise.all(isoTasks)
-    const isoJsons = await Promise.all(isoResults.map(r => r.json()))
+    const isoJsons = await Promise.all(isoResults.map(async (r, i) => {
+      const ct = r.headers.get('content-type') || ''
+      if (!r.ok || !ct.includes('application/json')) {
+        const text = await r.text().catch(() => '')
+        throw new Error(`Isolation failed for ${isoKinds[i]} (status ${r.status}). ${text.slice(0,120)}`)
+      }
+      return r.json()
+    }))
     const kindToImage: Record<string, string | undefined> = {}
     isoJsons.forEach((j, i) => {
       if (j?.ok) kindToImage[isoKinds[i]] = j.isolatedImage
@@ -97,8 +111,12 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({ userImageUrl: currentImage, productImageUrl, productType, fitInstructions })
       })
-      const js = await res.json()
-      if (!res.ok || !js?.ok) throw new Error(js?.error || 'Try-on failed')
+      const ct = res.headers.get('content-type') || ''
+      const js = ct.includes('application/json') ? await res.json() : null
+      if (!res.ok || !js?.ok) {
+        const txt = !ct.includes('application/json') ? await res.text().catch(() => '') : ''
+        throw new Error((js && js.error) || txt || 'Try-on failed')
+      }
       currentImage = js.tryOnImage
     }
 

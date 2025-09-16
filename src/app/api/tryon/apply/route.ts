@@ -1,5 +1,13 @@
 // API endpoint for virtual try-on application
 export const runtime = 'nodejs';
+// Allow bigger payloads since images are passed as data URLs between steps
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+};
 
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
