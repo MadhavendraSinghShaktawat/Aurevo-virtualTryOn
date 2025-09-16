@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import sharp from 'sharp';
 import { env } from '@/lib/env';
+import { buildCorsHeaders, handleCorsOptions } from '@/lib/cors'
 
 // Initialize Google Generative AI with environment variable
 const genAI = new GoogleGenerativeAI(env.get('GEMINI_API_KEY'));
@@ -21,14 +22,43 @@ interface ProductIsolateRequest {
   productType: 'tshirt' | 'shoes' | 'accessories' | 'pants' | 'dress' | 'jacket';
 }
 
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request as unknown as Request)
+}
+
 export async function POST(request: NextRequest) {
+  const corsHeaders = buildCorsHeaders(request as unknown as Request)
   try {
-    const { imageUrl, productType }: ProductIsolateRequest = await request.json();
+    // Safely parse JSON body and validate
+    const rawBody = await request.text().catch(() => '');
+    if (!rawBody) {
+      return NextResponse.json(
+        { error: 'Request body is required (JSON with imageUrl and productType)' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const body = parsed as Partial<ProductIsolateRequest>;
+    const imageUrl: string | undefined = typeof body.imageUrl === 'string' ? body.imageUrl : undefined;
+    const productType: ProductIsolateRequest['productType'] | undefined =
+      typeof body.productType === 'string' && ['tshirt','shoes','accessories','pants','dress','jacket'].includes(body.productType as string)
+        ? (body.productType as ProductIsolateRequest['productType'])
+        : undefined;
 
     if (!imageUrl || !productType) {
       return NextResponse.json(
         { error: 'Image URL and product type are required' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -113,7 +143,7 @@ export async function POST(request: NextRequest) {
         ok: false,
         error: 'Content blocked by safety filters. Please try a different image.',
         method: 'safety_blocked'
-      });
+      }, { headers: corsHeaders });
     }
 
     if (response.response?.candidates?.[0]?.content?.parts) {
@@ -139,7 +169,7 @@ export async function POST(request: NextRequest) {
         isolatedImage: fallbackImage,
         method: 'fallback_original',
         note: 'Used optimized original image - Gemini did not generate isolated version'
-      });
+      }, { headers: corsHeaders });
     }
 
     console.log('🎉 Product isolation successful!');
@@ -150,7 +180,7 @@ export async function POST(request: NextRequest) {
       method: 'gemini_isolation',
       productType: productType,
       timestamp: new Date().toISOString()
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('❌ Product isolation error:', error);
@@ -160,7 +190,7 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Failed to isolate product',
         timestamp: new Date().toISOString()
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 

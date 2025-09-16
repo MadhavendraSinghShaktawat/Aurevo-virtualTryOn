@@ -6,6 +6,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import sharp from 'sharp';
 import { env } from '@/lib/env';
 import { createClient } from '@supabase/supabase-js'
+import { buildCorsHeaders, handleCorsOptions } from '@/lib/cors'
 
 // Initialize Google Generative AI with environment variable
 const genAI = new GoogleGenerativeAI(env.get('GEMINI_API_KEY'));
@@ -24,18 +25,35 @@ interface TryOnRequest {
   fitInstructions?: string;
 }
 
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request as unknown as Request)
+}
+
 export async function POST(request: NextRequest) {
+  const corsHeaders = buildCorsHeaders(request as unknown as Request)
   try {
-    // Authenticate via HttpOnly cookies like other endpoints
-    const rawCookie = request.headers.get('cookie') || ''
-    const cookiePairs = rawCookie.split(';').map((s) => s.trim()).filter(Boolean).map((s) => {
-      const idx = s.indexOf('=');
-      const key = idx === -1 ? s : s.slice(0, idx);
-      const val = idx === -1 ? '' : decodeURIComponent(s.slice(idx + 1));
-      return [key, val] as [string, string];
-    })
-    const map = new Map<string, string>(cookiePairs)
-    const accessToken = map.get('sb_at') || ''
+    // Authenticate via Authorization: Bearer or HttpOnly cookie sb_at
+    const authHeader = request.headers.get('authorization') || ''
+    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i)
+    let accessToken = bearerMatch ? bearerMatch[1] : ''
+    if (!accessToken) {
+      const rawCookie = request.headers.get('cookie') || ''
+      const cookiePairs = rawCookie
+        .split(';')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => {
+          const idx = s.indexOf('=');
+          const key = idx === -1 ? s : s.slice(0, idx);
+          const val = idx === -1 ? '' : decodeURIComponent(s.slice(idx + 1));
+          return [key, val] as [string, string];
+        })
+      const map = new Map<string, string>(cookiePairs)
+      accessToken = map.get('sb_at') || ''
+    }
+    if (!accessToken) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized: missing access token' }, { status: 401, headers: corsHeaders })
+    }
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
     const db = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
@@ -44,20 +62,40 @@ export async function POST(request: NextRequest) {
     const { data: userRes } = await db.auth.getUser()
     const userId = userRes?.user?.id
     if (!userId) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401, headers: corsHeaders })
     }
     await db.rpc('ensure_monthly_topup', { p_user_id: userId })
     // Consume 1 credit atomically; block if none
     const { data: consumed } = await db.rpc('consume_credits', { p_user_id: userId, p_delta: 1 })
     if (!consumed) {
-      return NextResponse.json({ ok: false, error: 'Not enough credits' }, { status: 402 })
+      return NextResponse.json({ ok: false, error: 'Not enough credits' }, { status: 402, headers: corsHeaders })
     }
-    const { userImageUrl, productImageUrl, productType, fitInstructions }: TryOnRequest = await request.json();
+    // Safely parse JSON body
+    const rawBody = await request.text().catch(() => '')
+    if (!rawBody) {
+      return NextResponse.json(
+        { error: 'Request body is required (JSON with userImageUrl, productImageUrl, productType)' },
+        { status: 400, headers: corsHeaders }
+      )
+    }
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: corsHeaders })
+    }
+    const body = parsed as Partial<TryOnRequest>
+    const userImageUrl = typeof body.userImageUrl === 'string' ? body.userImageUrl : ''
+    const productImageUrl = typeof body.productImageUrl === 'string' ? body.productImageUrl : ''
+    const productType = typeof body.productType === 'string' && ['tshirt','shoes','accessories','pants','dress','jacket'].includes(body.productType as string)
+      ? (body.productType as TryOnRequest['productType'])
+      : undefined
+    const fitInstructions = typeof body.fitInstructions === 'string' ? body.fitInstructions : undefined
 
     if (!userImageUrl || !productImageUrl || !productType) {
       return NextResponse.json(
         { error: 'User image, product image, and product type are required' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -150,7 +188,7 @@ export async function POST(request: NextRequest) {
         ok: false,
         error: 'Content blocked by safety filters. Please try different images.',
         method: 'safety_blocked'
-      });
+      }, { headers: corsHeaders });
     }
 
     if (response.response?.candidates?.[0]?.content?.parts) {
@@ -170,7 +208,7 @@ export async function POST(request: NextRequest) {
         ok: false,
         error: 'Failed to generate try-on image. Please try again with different images.',
         method: 'no_generation'
-      });
+      }, { headers: corsHeaders });
     }
 
     console.log('🎉 Virtual try-on successful!');
@@ -181,7 +219,7 @@ export async function POST(request: NextRequest) {
       method: 'gemini_tryon',
       productType: productType,
       timestamp: new Date().toISOString()
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('❌ Virtual try-on error:', error);
@@ -191,7 +229,7 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Failed to process virtual try-on',
         timestamp: new Date().toISOString()
       },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 

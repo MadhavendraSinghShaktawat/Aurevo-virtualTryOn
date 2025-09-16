@@ -3,7 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { buildCorsHeaders, handleCorsOptions } from '@/lib/cors'
 
 function cookie(name: string, value: string, maxAgeSec: number) {
-  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSec}; SameSite=None; Secure; HttpOnly`
+  const useSecure = process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true'
+  const secureAttr = useSecure ? ' Secure;' : ''
+  return `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSec}; SameSite=None;${secureAttr} HttpOnly`
 }
 
 export async function OPTIONS(req: NextRequest) {

@@ -1,4 +1,4 @@
-const DEFAULT_ALLOWED_METHODS = 'GET,OPTIONS'
+const DEFAULT_ALLOWED_METHODS = 'GET,POST,OPTIONS'
 const DEFAULT_ALLOWED_HEADERS = 'Authorization,Content-Type'
 
 function getAllowedOrigins(): string[] {
@@ -14,7 +14,10 @@ function getAllowedOrigins(): string[] {
 export function buildCorsHeaders(request: Request): HeadersInit {
   const origin = request.headers.get('origin') || ''
   const allowedOrigins = getAllowedOrigins()
-  const isAllowed = allowedOrigins.some((o) => o === origin)
+  let isAllowed = allowedOrigins.some((o) => o === origin)
+  if (!isAllowed && origin.startsWith('chrome-extension://')) {
+    isAllowed = true
+  }
 
   const headers: HeadersInit = {
     'Access-Control-Allow-Methods': DEFAULT_ALLOWED_METHODS,

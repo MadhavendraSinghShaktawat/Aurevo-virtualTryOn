@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken as string })
     if (data?.session && !error) {
       const h = new Headers(headers)
-      h.append('Set-Cookie', `sb_at=${encodeURIComponent(data.session.access_token)}; Path=/; Max-Age=3600; SameSite=None; Secure; HttpOnly`)
+      const useSecure = process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true'
+      const secureAttr = useSecure ? ' Secure;' : ''
+      h.append('Set-Cookie', `sb_at=${encodeURIComponent(data.session.access_token)}; Path=/; Max-Age=3600; SameSite=None;${secureAttr} HttpOnly`)
       const u = data.session.user
       return NextResponse.json({ userId: u.id, email: u.email }, { status: 200, headers: h })
     }
