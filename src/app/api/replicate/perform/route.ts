@@ -8,6 +8,8 @@ export const config = {
     },
   },
 };
+// Allow longer processing time as replicate chains multiple apply steps
+export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCorsHeaders, handleCorsOptions } from '@/lib/cors'
