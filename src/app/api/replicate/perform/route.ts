@@ -100,7 +100,8 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('authorization') || ''
     const cookieHeader = req.headers.get('cookie') || ''
 
-    let currentImage = userImageUrl as string
+    // Fail-safe: compact initial user image if it's a data URL
+    let currentImage = await compactDataUrl(userImageUrl as string, 1200, 82)
     const applyOnce = async (productImageUrl: string, productType: 'tshirt'|'pants'|'shoes'|'accessories') => {
       const res = await fetch(`${baseUrl}/api/tryon/apply`, {
         method: 'POST',
@@ -117,7 +118,8 @@ export async function POST(req: NextRequest) {
         const txt = !ct.includes('application/json') ? await res.text().catch(() => '') : ''
         throw new Error((js && js.error) || txt || 'Try-on failed')
       }
-      currentImage = js.tryOnImage
+      // After each step, compact resulting image to keep payload small for next step
+      currentImage = await compactDataUrl(js.tryOnImage as string, 1200, 82)
     }
 
     if (inc.top && kindToImage['tshirt']) await applyOnce(kindToImage['tshirt'] as string, 'tshirt')
@@ -127,7 +129,9 @@ export async function POST(req: NextRequest) {
       await applyOnce(shoesAccessoriesImage, 'shoes')
     }
 
-    return NextResponse.json({ ok: true, finalImage: currentImage, isolated: { top: kindToImage['tshirt'], bottom: kindToImage['pants'], shoesAccessories: shoesAccessoriesImage } }, { headers })
+    // Compact final once more before sending
+    const finalImage = await compactDataUrl(currentImage, 1200, 82)
+    return NextResponse.json({ ok: true, finalImage, isolated: { top: kindToImage['tshirt'], bottom: kindToImage['pants'], shoesAccessories: shoesAccessoriesImage } }, { headers })
 
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'Unexpected error' }, { status: 500, headers })
@@ -162,5 +166,26 @@ async function resolveFinalImageUrl(url: string): Promise<string> {
     }
   } catch {}
   return url
+}
+
+// Compact data URL jpeg to keep payload small between steps
+async function compactDataUrl(dataUrl: string, maxDim: number, qualityPct: number): Promise<string> {
+  try {
+    if (!dataUrl?.startsWith('data:')) return dataUrl
+    const comma = dataUrl.indexOf(',')
+    const b64 = dataUrl.slice(comma + 1)
+    const buf = Buffer.from(b64, 'base64')
+    const meta = await sharp(buf).metadata()
+    const width = meta.width || 0
+    const height = meta.height || 0
+    const curMax = Math.max(width, height)
+    const scale = curMax > 0 && curMax > maxDim ? maxDim / curMax : 1
+    const w = Math.max(1, Math.round(width * scale))
+    const h = Math.max(1, Math.round(height * scale))
+    const out = await sharp(buf).resize(w, h, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: Math.max(60, Math.min(95, Math.round(qualityPct))) }).toBuffer()
+    return `data:image/jpeg;base64,${out.toString('base64')}`
+  } catch {
+    return dataUrl
+  }
 }
 
