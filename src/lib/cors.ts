@@ -16,7 +16,9 @@ export function buildCorsHeaders(request: Request): HeadersInit {
   const origin = request.headers.get('origin') || ''
   const allowedOrigins = getAllowedOrigins()
   let isAllowed = allowedOrigins.some((o) => o === origin)
-  if (!isAllowed && origin.startsWith('chrome-extension://')) {
+  
+  // Allow chrome extensions and all https origins (for extension usage)
+  if (!isAllowed && (origin.startsWith('chrome-extension://') || origin.startsWith('https://'))) {
     isAllowed = true
   }
 
