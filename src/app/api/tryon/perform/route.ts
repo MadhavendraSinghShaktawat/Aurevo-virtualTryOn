@@ -1,5 +1,6 @@
 // Combined endpoint: isolates product then applies try-on in one server call
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCorsHeaders, handleCorsOptions } from '@/lib/cors'
