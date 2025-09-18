@@ -6,6 +6,7 @@ function getAllowedOrigins(): string[] {
     process.env.NEXT_PUBLIC_APP_URL || '',
     'http://localhost:3000',
     'https://localhost:3000',
+    'https://aurevo-virtual-try-on.vercel.app',
   ]
   if (process.env.EXTENSION_ORIGIN) list.push(process.env.EXTENSION_ORIGIN)
   return list.filter(Boolean)
