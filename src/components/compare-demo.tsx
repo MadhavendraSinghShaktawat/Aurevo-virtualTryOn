@@ -11,12 +11,26 @@ export function CompareDemo(): JSX.Element {
   const variants = useMemo(() => [generatedA, generatedB], [])
   const [index, setIndex] = useState<number>(0)
   const [progress, setProgress] = useState<number>(0)
+  const [isMobile, setIsMobile] = useState<boolean>(false)
   const sectionRef = React.useRef<HTMLDivElement>(null)
   const isInView = useInView(sectionRef, { once: true, margin: "-10%" })
   
+  // Detect mobile device
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768) // md breakpoint
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+  
   const handleComplete = useCallback(() => {
-    setIndex((i) => (i + 1) % variants.length)
-  }, [variants.length])
+    // Only cycle through variants on desktop
+    if (!isMobile) {
+      setIndex((i) => (i + 1) % variants.length)
+    }
+  }, [variants.length, isMobile])
 
   return (
     <motion.section 
@@ -48,7 +62,10 @@ export function CompareDemo(): JSX.Element {
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
             transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
           >
-            See your photo with the outfit applied. It will cycle through variants automatically.
+            {isMobile 
+              ? "See your photo with the outfit applied. Drag to compare the before and after."
+              : "See your photo with the outfit applied. It will cycle through variants automatically."
+            }
           </motion.p>
         </motion.div>
 
@@ -76,13 +93,13 @@ export function CompareDemo(): JSX.Element {
                 className="h-full"
               >
                 <Compare
-                  firstImage={original}
-                  secondImage={variants[index]}
+                  firstImage={isMobile ? generatedB : variants[index]}
+                  secondImage={original}
                   firstImageClassName="object-contain object-center w-full"
                   secondImageClassname="object-contain object-center w-full"
                   className="h-full w-full rounded-xl"
                   slideMode="drag"
-                  autoplay
+                  autoplay={!isMobile}
                   autoplayDurationMs={4500}
                   onAutoplayComplete={handleComplete}
                   onProgress={setProgress}
@@ -93,15 +110,17 @@ export function CompareDemo(): JSX.Element {
               </motion.div>
             </AnimatePresence>
             
-            {/* Animated Variant Indicator */}
-            <motion.div 
-              className="mt-4 flex items-center justify-center"
-              initial={{ opacity: 0, y: 10 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-              transition={{ duration: 0.6, delay: 0.8, ease: "easeOut" }}
-            >
-              <div className="text-sm font-medium text-gray-700">Variant {index + 1} of {variants.length}</div>
-            </motion.div>
+            {/* Animated Variant Indicator - Hidden on mobile */}
+            {!isMobile && (
+              <motion.div 
+                className="mt-4 flex items-center justify-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                transition={{ duration: 0.6, delay: 0.8, ease: "easeOut" }}
+              >
+                <div className="text-sm font-medium text-gray-700">Variant {index + 1} of {variants.length}</div>
+              </motion.div>
+            )}
           </motion.div>
         </motion.div>
       </div>

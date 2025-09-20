@@ -13,7 +13,9 @@ import SessionSync from '@/components/session-sync'
 import { SolutionHighlights } from '@/components/ui/solution-highlights'
 import { Footer } from '@/components/ui/footer'
 import { CompareDemo } from '@/components/compare-demo'
-import { ProcessSection } from '@/components/process-section'
+import ProcessSection from '@/components/process-section'
+
+
 import { 
   Camera, 
   Star,
@@ -53,7 +55,7 @@ export default function OnivoLandingPage() {
 
       {/* Main Hero Section */}
       <motion.main 
-        className="relative min-h-screen"
+        className="relative min-h-screen flex items-center justify-center"
         style={{ y: heroY, opacity: heroOpacity }}
       >
         {/* Floating Design Elements */}
@@ -121,54 +123,58 @@ export default function OnivoLandingPage() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-7xl mx-auto text-center pt-20 sm:pt-32 md:pt-48 lg:pt-64 xl:pt-80 2xl:pt-96 pb-16 sm:pb-20 md:pb-24 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight max-w-5xl mx-auto">
-            See How It Fits{' '}
-            <span className="relative">
-              Before You Buy
-              <div className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2">
-                <div className="w-4 h-4 sm:w-6 sm:h-6 bg-black rounded-full flex items-center justify-center">
-                  <Camera className="h-2 w-2 sm:h-3 sm:w-3 text-white" />
+        <div className="relative z-10 max-w-7xl mx-auto text-center px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center w-full">
+          <div className="w-full max-w-5xl mx-auto">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6 leading-tight text-center">
+              See How It Fits{' '}
+              <span className="relative">
+                Before You Buy
+                <div className="absolute -top-0.5 sm:-top-1 md:-top-2 -right-0.5 sm:-right-1 md:-right-2">
+                  <div className="w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 bg-black rounded-full flex items-center justify-center">
+                    <Camera className="h-1.5 w-1.5 xs:h-2 xs:w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 text-white" />
+                  </div>
                 </div>
-              </div>
-            </span>
-          </h1>
+              </span>
+            </h1>
 
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 mb-8 sm:mb-10 md:mb-12 max-w-4xl mx-auto leading-relaxed px-2">
-            Onivo overlays on any shopping site, letting you try outfits on your photo before checkout.
-          </p>
+            <p className="text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 mb-6 sm:mb-8 md:mb-10 lg:mb-12 max-w-4xl mx-auto leading-relaxed text-center">
+              Onivo overlays on any shopping site, letting you try outfits on your photo before checkout.
+            </p>
+          </div>
 
           {/* CTA Button */}
-          <Button 
-            size="lg"
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto max-w-sm mx-auto cursor-interactive"
-            data-cursor-hover
-          >
-            Add Onivo to Chrome — It's Free
-            <div data-cursor-bounds className="absolute inset-0 rounded-full"></div>
-          </Button>
+          <div className="w-full flex justify-center">
+            <Button 
+              size="lg"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 xs:px-6 sm:px-8 py-2.5 xs:py-3 sm:py-4 text-sm xs:text-base sm:text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto max-w-xs xs:max-w-sm cursor-interactive"
+              data-cursor-hover
+            >
+              Add Onivo to Chrome — It's Free
+              <div data-cursor-bounds className="absolute inset-0 rounded-full"></div>
+            </Button>
+          </div>
 
           {/* Chrome Web Store Section */}
-          <div className="mt-12 sm:mt-16 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-400 via-yellow-400 via-green-400 to-blue-400 rounded-full flex items-center justify-center">
-                <Chrome className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          <div className="mt-8 sm:mt-12 md:mt-16 w-full flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 md:space-x-8">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-400 via-yellow-400 via-green-400 to-blue-400 rounded-full flex items-center justify-center">
+                <Chrome className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div className="text-left">
-                <div className="text-sm sm:text-base font-semibold text-gray-900">Chrome Web Store</div>
-                <div className="text-xs sm:text-sm text-gray-600">50,000+ users</div>
+                <div className="text-xs xs:text-sm sm:text-base font-semibold text-gray-900">Chrome Web Store</div>
+                <div className="text-xs text-gray-600">50,000+ users</div>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
               <div className="flex items-center">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 fill-current" />
+                  <Star key={i} className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-yellow-400 fill-current" />
                 ))}
               </div>
               <div className="text-left">
-                <div className="text-base sm:text-lg font-bold text-gray-900">4.8</div>
-                <div className="text-xs sm:text-sm text-gray-600">14.2k rating</div>
+                <div className="text-sm xs:text-base sm:text-lg font-bold text-gray-900">4.8</div>
+                <div className="text-xs text-gray-600">14.2k rating</div>
               </div>
             </div>
           </div>
@@ -177,7 +183,9 @@ export default function OnivoLandingPage() {
 
       {/* Brand Marquee Section */}
       <BrandMarqueeSection />
+      
 
+      
       {/* Compare Demo Section */}
       <CompareDemo />
 

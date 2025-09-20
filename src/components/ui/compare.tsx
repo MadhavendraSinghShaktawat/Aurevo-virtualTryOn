@@ -99,6 +99,25 @@ export function Compare(props: CompareProps): JSX.Element {
     ;(e.target as Element).releasePointerCapture?.(e.pointerId)
   }, [])
 
+  // Touch event handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>): void => {
+    if (slideMode !== 'drag') return
+    setIsDragging(true)
+    const touch = e.touches[0]
+    if (touch) updateFromEvent(touch.clientX)
+  }, [slideMode, updateFromEvent])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>): void => {
+    if (!isDragging) return
+    e.preventDefault() // Prevent scrolling
+    const touch = e.touches[0]
+    if (touch) updateFromEvent(touch.clientX)
+  }, [isDragging, updateFromEvent])
+
+  const handleTouchEnd = useCallback((): void => {
+    setIsDragging(false)
+  }, [])
+
   const handleMouseLeave = useCallback((): void => {
     if (slideMode === 'hover') setIsDragging(false)
   }, [slideMode])
@@ -144,14 +163,18 @@ export function Compare(props: CompareProps): JSX.Element {
       ref={containerRef}
       className={[
         'relative overflow-hidden select-none bg-white group',
-        'shadow-[0_10px_40px_rgba(59,130,246,0.08)] rounded-3xl',
+        'shadow-[0_10px_40px_rgba(59,130,246,0.08)] rounded-xl md:rounded-3xl',
         'hover:shadow-[0_20px_60px_rgba(59,130,246,0.12)] transition-all duration-500',
         'border border-gray-100/50',
+        'w-full h-auto min-h-[200px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px]',
         className ?? ''
       ].join(' ')}
       onPointerDown={slideMode === 'drag' ? handlePointerDown : undefined}
       onPointerMove={handlePointerMove}
       onPointerUp={slideMode === 'drag' ? handlePointerUp : undefined}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         handleMouseLeave()
@@ -170,9 +193,9 @@ export function Compare(props: CompareProps): JSX.Element {
         <>
           <div
             className={[
-              'absolute top-6 left-6 z-20 pointer-events-none',
-              'px-4 py-2 backdrop-blur-md bg-white/90 border border-gray-200/60',
-              'text-sm font-bold tracking-tight text-gray-900 rounded-xl shadow-lg',
+              'absolute top-3 left-3 sm:top-6 sm:left-6 z-20 pointer-events-none',
+              'px-2 py-1 sm:px-4 sm:py-2 backdrop-blur-md bg-white/90 border border-gray-200/60',
+              'text-xs sm:text-sm font-bold tracking-tight text-gray-900 rounded-lg sm:rounded-xl shadow-lg',
               'group-hover:scale-105 transition-transform duration-300',
               labelClassName ?? ''
             ].join(' ')}
@@ -181,9 +204,9 @@ export function Compare(props: CompareProps): JSX.Element {
           </div>
           <div
             className={[
-              'absolute top-6 right-6 z-20 pointer-events-none',
-              'px-4 py-2 backdrop-blur-md bg-blue-500/95 border border-blue-600/60',
-              'text-sm font-bold tracking-tight text-white rounded-xl shadow-lg',
+              'absolute top-3 right-3 sm:top-6 sm:right-6 z-20 pointer-events-none',
+              'px-2 py-1 sm:px-4 sm:py-2 backdrop-blur-md bg-blue-500/95 border border-blue-600/60',
+              'text-xs sm:text-sm font-bold tracking-tight text-white rounded-lg sm:rounded-xl shadow-lg',
               'group-hover:scale-105 transition-transform duration-300',
               labelClassName ?? ''
             ].join(' ')}
@@ -195,10 +218,10 @@ export function Compare(props: CompareProps): JSX.Element {
 
       {/* Progress Indicator (Floating) */}
       {autoplay && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="px-4 py-2 backdrop-blur-md bg-white/90 border border-gray-200/60 rounded-full shadow-lg">
-            <div className="flex items-center space-x-3">
-              <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 sm:bottom-6 z-20 pointer-events-none">
+          <div className="px-2 py-1 sm:px-4 sm:py-2 backdrop-blur-md bg-white/90 border border-gray-200/60 rounded-full shadow-lg">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-12 h-1 sm:w-16 sm:h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-100"
                   style={{ width: `${positionPct}%` }}
@@ -251,8 +274,8 @@ export function Compare(props: CompareProps): JSX.Element {
         <div
           className={[
             'absolute top-1/2 -translate-y-1/2 -translate-x-1/2',
-            'w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600',
-            'shadow-[0_8px_32px_rgba(59,130,246,0.3)] border-4 border-white',
+            'w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600',
+            'shadow-[0_8px_32px_rgba(59,130,246,0.3)] border-2 sm:border-4 border-white',
             'grid place-items-center text-white cursor-grab active:cursor-grabbing',
             'hover:scale-110 transition-all duration-300',
             'group-hover:shadow-[0_12px_48px_rgba(59,130,246,0.4)]'
@@ -262,7 +285,7 @@ export function Compare(props: CompareProps): JSX.Element {
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="currentColor"
-            className="h-5 w-5"
+            className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5"
           >
             <path d="M13.25 4.5a.75.75 0 0 0-1.5 0v15a.75.75 0 0 0 1.5 0v-15Z" />
             <path d="M9.25 8.25 4.5 12l4.75 3.75v-7.5Zm5.5 0v7.5L19.5 12l-4.75-3.75Z" />
@@ -271,7 +294,7 @@ export function Compare(props: CompareProps): JSX.Element {
 
         {/* Subtle glow effect */}
         <div 
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-blue-500/10 blur-xl pointer-events-none"
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-blue-500/10 blur-xl pointer-events-none"
           style={{
             background: `radial-gradient(circle, rgba(59,130,246,${autoplay ? 0.15 : 0.08}) 0%, transparent 70%)`
           }}
@@ -284,9 +307,10 @@ export function Compare(props: CompareProps): JSX.Element {
         'transition-opacity duration-300 pointer-events-none z-30',
         'flex items-center justify-center'
       ].join(' ')}>
-        <div className="backdrop-blur-sm bg-white/90 px-6 py-3 rounded-2xl shadow-xl border border-gray-200/60">
-          <p className="text-sm font-medium text-gray-700 tracking-tight">
-            Drag to compare • Hover to pause
+        <div className="backdrop-blur-sm bg-white/90 px-3 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl shadow-xl border border-gray-200/60">
+          <p className="text-xs sm:text-sm font-medium text-gray-700 tracking-tight text-center">
+            <span className="hidden sm:inline">Drag to compare • Hover to pause</span>
+            <span className="sm:hidden">Tap to compare</span>
           </p>
         </div>
       </div>
