@@ -123,41 +123,57 @@ export function ProcessSection({ className }: ProcessSectionProps) {
     // Clear existing animations
     ScrollTrigger.getAll().forEach(trigger => trigger.kill());
 
-    // Desktop layout for xl and larger screens (keep existing desktop behavior)
+    // Desktop layout for xl and larger screens 
     const isDesktopLayout = ['xl', '2xl', '3xl'].includes(screenSize);
 
     if (isDesktopLayout) {
-      // Desktop: Horizontal scroll animation
-      const totalWidth = slides.length * 100;
+      // Set container to relative position to fix ScrollTrigger warning
+      gsap.set(sectionRef.current, { position: 'relative', zIndex: 1 });
+      gsap.set(slidesRef.current, { position: 'relative', zIndex: 2 });
       
-      gsap.to(slides, {
+      // Ensure all images are visible from the start on desktop
+      slides.forEach((slide, index) => {
+        if (index === 0) return; // Skip hero slide
+        
+        const stepImage = slide.querySelector('.step-image');
+        if (stepImage) {
+          gsap.set(stepImage, { 
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            x: 0,
+            visibility: 'visible',
+            display: 'block'
+          });
+        }
+      });
+
+      // Desktop: Horizontal scroll animation with proper cleanup
+      const scrollAnimation = gsap.to(slides, {
         xPercent: -100 * (slides.length - 1),
         ease: "none",
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top top",
-          end: `+=${totalWidth}%`,
+          end: "bottom bottom", // Changed from calculated percentage
           scrub: 1,
           pin: slidesRef.current,
           anticipatePin: 1,
+          pinSpacing: true, // Ensure proper spacing after pin
+          onUpdate: (self) => {
+            // Debug: log scroll progress
+            if (self.progress === 1) {
+              console.log('Animation complete, should release pin');
+            }
+          }
         }
       });
 
-      // Desktop animations for each slide
+      // Desktop animations for each slide - simplified to avoid hiding images
       slides.forEach((slide, index) => {
         if (index === 0) return; // Skip hero slide
         
         const stepContent = slide.querySelector('.step-content');
-        const stepImage = slide.querySelector('.step-image');
-        
-        // Set initial state
-        if (stepImage) {
-          gsap.set(stepImage, { 
-            opacity: index === 1 ? 1 : 0,
-            scale: index === 1 ? 1 : 0.9,
-            y: 20
-          });
-        }
         
         if (stepContent) {
           gsap.fromTo(stepContent, 
@@ -175,37 +191,6 @@ export function ProcessSection({ className }: ProcessSectionProps) {
               }
             }
           );
-        }
-
-        if (stepImage) {
-          // Show animation
-          gsap.to(stepImage, {
-            opacity: 1,
-            scale: 1,
-            y: 0,
-            duration: 1,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: slide,
-              start: "left center",
-              end: "center center",
-              scrub: 1,
-            }
-          });
-
-          // Hide animation
-          gsap.to(stepImage, {
-            opacity: 0,
-            scale: 0.9,
-            y: -20,
-            duration: 0.8,
-            scrollTrigger: {
-              trigger: slide,
-              start: "center center",
-              end: "right center",
-              scrub: 1,
-            }
-          });
         }
       });
     } else {
@@ -295,7 +280,11 @@ export function ProcessSection({ className }: ProcessSectionProps) {
     }
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      ScrollTrigger.getAll().forEach(trigger => {
+        trigger.kill();
+      });
+      // Force a refresh to clean up any lingering effects
+      ScrollTrigger.refresh();
     };
   }, [screenSize, isMounted]);
 
@@ -349,10 +338,15 @@ export function ProcessSection({ className }: ProcessSectionProps) {
     <section 
       ref={sectionRef}
       className={cn(
-        "w-full relative bg-white overflow-hidden",
-        isVerticalLayout ? spacing.section : "h-[400vh]",
+        "w-full bg-white overflow-hidden",
+        isVerticalLayout ? `relative ${spacing.section}` : "relative",
         className
       )}
+      style={{ 
+        position: 'relative',
+        zIndex: 1,
+        ...(isVerticalLayout ? {} : { height: '400vh' })
+      }}
     >
       <div 
         ref={slidesRef}
@@ -362,6 +356,10 @@ export function ProcessSection({ className }: ProcessSectionProps) {
             ? "space-y-8 xs:space-y-10 sm:space-y-12 md:space-y-16 lg:space-y-20" 
             : "sticky top-0 left-0 flex gap-0 h-screen"
         )}
+        style={{
+          position: isVerticalLayout ? 'static' : 'relative',
+          zIndex: 2
+        }}
       >
         {processData.map((step, index) => (
           <ProcessSlide 
@@ -698,15 +696,10 @@ function ProcessSlide({ step, index, screenSize, totalSteps }: ProcessSlideProps
               </div>
             </div>
           ) : (
-            /* Desktop Layout */
-            <div className="w-full h-full flex items-center relative">
+            /* Desktop Layout - Fixed for better image visibility */
+            <div className="w-full h-full flex items-center relative px-12 max-w-7xl mx-auto">
               {/* Text Content - Left Side */}
-              <div className={cn(
-                "w-1/2 flex flex-col justify-center step-content",
-                screenSize === 'xl' ? 'px-6' :
-                screenSize === '2xl' ? 'px-8' :
-                'px-12'
-              )}>
+              <div className="w-1/2 flex flex-col justify-center step-content pr-8">
                 {/* Step Icon */}
                 <div className="flex items-center justify-start mb-6">
                   <div className="relative">
@@ -796,33 +789,60 @@ function ProcessSlide({ step, index, screenSize, totalSteps }: ProcessSlideProps
                 </div>
               </div>
 
-              {/* Image - Right Side */}
-              <div className={cn(
-                "absolute top-1/2 transform -translate-y-1/2 step-image",
-                screenSize === 'xl' ? 'right-6 w-2/5 max-w-md' :
-                screenSize === '2xl' ? 'right-8 w-2/5 max-w-lg' :
-                'right-12 w-2/5 max-w-xl'
-              )}>
-                {step.images.main && (
-                  <img
-                    src={step.images.main}
-                    alt={`${step.title} - ${step.subtitle}`}
-                    className="w-full h-auto object-contain rounded-2xl xl:rounded-3xl shadow-2xl"
-                    loading="lazy"
-                    onError={(e) => {
-                      console.error('Desktop image failed to load:', step.images.main);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                    onLoad={() => {
-                      console.log('Desktop image loaded successfully:', step.images.main);
-                    }}
-                  />
+              {/* Image - Right Side - Fixed positioning and sizing */}
+              <div className="w-1/2 flex items-center justify-center step-image">
+                <div className={cn(
+                  "relative w-full max-w-lg h-auto opacity-100",
+                  screenSize === 'xl' ? 'max-w-md' :
+                  screenSize === '2xl' ? 'max-w-lg' :
+                  'max-w-xl'
                 )}
-                {!step.images.main && (
-                  <div className="w-full h-64 bg-gray-200 rounded-2xl xl:rounded-3xl shadow-2xl flex items-center justify-center text-gray-500">
-                    <span className="text-sm">Image placeholder</span>
+                style={{ opacity: 1, visibility: 'visible' }}
+                >
+                  {step.images.main ? (
+                    <img
+                      src={step.images.main}
+                      alt={`${step.title} - ${step.subtitle}`}
+                      className="w-full h-auto object-contain rounded-2xl xl:rounded-3xl shadow-2xl opacity-100"
+                      loading="eager"
+                      style={{ 
+                        display: 'block',
+                        maxHeight: '70vh',
+                        width: 'auto',
+                        margin: '0 auto',
+                        opacity: 1,
+                        visibility: 'visible'
+                      }}
+                      onError={(e) => {
+                        console.error('Desktop image failed to load:', step.images.main);
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                        // Show fallback
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) {
+                          fallback.style.display = 'flex';
+                        }
+                      }}
+                      onLoad={(e) => {
+                        console.log('Desktop image loaded successfully:', step.images.main);
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.opacity = '1';
+                        target.style.visibility = 'visible';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-96 bg-gray-200 rounded-2xl xl:rounded-3xl shadow-2xl flex items-center justify-center text-gray-500">
+                      <span className="text-lg">Image placeholder</span>
+                    </div>
+                  )}
+                  {/* Fallback div for failed images */}
+                  <div 
+                    className="w-full h-96 bg-gray-200 rounded-2xl xl:rounded-3xl shadow-2xl items-center justify-center text-gray-500"
+                    style={{ display: 'none' }}
+                  >
+                    <span className="text-lg">Image not available</span>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}
