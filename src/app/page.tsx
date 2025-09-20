@@ -12,6 +12,8 @@ import { BrandMarqueeSection } from '@/components/ui/brand-marquee'
 import SessionSync from '@/components/session-sync'
 import { SolutionHighlights } from '@/components/ui/solution-highlights'
 import { Footer } from '@/components/ui/footer'
+import { CompareDemo } from '@/components/compare-demo'
+import { ProcessSection } from '@/components/process-section'
 import { 
   Camera, 
   Star,
@@ -176,8 +178,13 @@ export default function OnivoLandingPage() {
       {/* Brand Marquee Section */}
       <BrandMarqueeSection />
 
+      {/* Compare Demo Section */}
+      <CompareDemo />
+
       {/* Anchor to open overlay from dock */}
       <div id="pricing" className="sr-only" aria-hidden />
+
+      <ProcessSection />
 
       {/* Solution Highlights */}
       <SolutionHighlights />
